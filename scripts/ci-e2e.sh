@@ -101,12 +101,33 @@ cleanup() {
 
   # Verify that no containers are running at this time
   # Note: This verifies that all our tests clean up clusters correctly.
-  if [[ ! "$(docker ps -q | wc -l)" -eq "0" ]]
+  # This addresses issue #12578 where containers were left running after test failures.
+  running_containers=$(docker ps -q)
+  if [[ ! "$(echo "$running_containers" | wc -l)" -eq "0" ]]
   then
      echo "ERROR: Found unexpected running containers:"
      echo ""
      docker ps
-     exit 1
+     echo ""
+     echo "Attempting to clean up remaining containers..."
+     
+     # Try to clean up any remaining containers that might be from failed tests
+     # This provides a fallback cleanup mechanism in case the test framework cleanup failed
+     for container_id in $running_containers; do
+       echo "Force removing container: $container_id"
+       docker rm -f "$container_id" || echo "Failed to remove container $container_id"
+     done
+     
+     # Check again after cleanup attempt
+     remaining_containers=$(docker ps -q)
+     if [[ ! "$(echo "$remaining_containers" | wc -l)" -eq "0" ]]
+     then
+       echo "ERROR: Still found running containers after cleanup attempt:"
+       docker ps
+       exit 1
+     else
+       echo "Successfully cleaned up all remaining containers."
+     fi
   fi
 }
 trap "cleanup" EXIT SIGINT

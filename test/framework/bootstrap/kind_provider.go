@@ -23,12 +23,14 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cmd"
 	"sigs.k8s.io/kind/pkg/exec"
 
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 )
 
 const (
@@ -206,13 +208,91 @@ func (k *KindClusterProvider) GetKubeconfigPath() string {
 }
 
 // Dispose the kind cluster and its kubeconfig file.
+// This method attempts to clean up the kind cluster and all associated containers.
+// If the normal kind delete operation fails, it will attempt to manually clean up
+// containers to prevent flaky tests due to leftover containers.
 func (k *KindClusterProvider) Dispose(ctx context.Context) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for Dispose")
 
 	if err := kind.NewProvider().Delete(k.name, k.kubeconfigPath); err != nil {
-		log.Logf("Deleting the kind cluster %q failed. You may need to remove this by hand.", k.name)
+		log.Logf("Deleting the kind cluster %q failed: %v. Attempting to clean up containers manually.", k.name, err)
+
+		// If kind delete fails, try to clean up containers manually to prevent flaky tests
+		// This addresses issue #12578 where containers were left running after test failures
+		if err := k.forceCleanupContainers(ctx); err != nil {
+			log.Logf("Failed to force cleanup containers for cluster %q: %v. You may need to remove this by hand.", k.name, err)
+		}
 	}
 	if err := os.Remove(k.kubeconfigPath); err != nil {
 		log.Logf("Deleting the kubeconfig file %q file. You may need to remove this by hand.", k.kubeconfigPath)
 	}
+}
+
+// forceCleanupContainers attempts to manually clean up containers associated with this kind cluster
+// when the normal kind delete operation fails. This helps prevent flaky tests due to leftover containers.
+func (k *KindClusterProvider) forceCleanupContainers(ctx context.Context) error {
+	// Get Docker runtime client
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return errors.Wrap(err, "failed to get Docker runtime client")
+	}
+	ctx = container.RuntimeInto(ctx, containerRuntime)
+
+	// Find all containers with the kind cluster name prefix
+	filters := container.FilterBuilder{}
+	filters.AddKeyValue("name", k.name)
+	containers, err := containerRuntime.ListContainers(ctx, filters)
+	if err != nil {
+		return errors.Wrap(err, "failed to list containers")
+	}
+
+	// Also look for containers with the kind cluster name pattern (e.g., clusterctl-upgrade-management-2mbke1-control-plane)
+	// This matches the pattern seen in the failing test logs
+	kindPattern := k.name + "-"
+	filtersPattern := container.FilterBuilder{}
+	filtersPattern.AddKeyValue("name", kindPattern)
+	patternContainers, err := containerRuntime.ListContainers(ctx, filtersPattern)
+	if err != nil {
+		log.Logf("Warning: failed to list containers with pattern %q: %v", kindPattern, err)
+	} else {
+		containers = append(containers, patternContainers...)
+	}
+
+	// Also look for any containers that might be related to this cluster by checking labels
+	// Kind clusters often have labels that can help identify related containers
+	labelFilters := container.FilterBuilder{}
+	labelFilters.AddKeyValue("label", "io.x-k8s.kind.cluster="+k.name)
+	labelContainers, err := containerRuntime.ListContainers(ctx, labelFilters)
+	if err != nil {
+		log.Logf("Warning: failed to list containers with cluster label %q: %v", k.name, err)
+	} else {
+		containers = append(containers, labelContainers...)
+	}
+
+	// Remove duplicates
+	containerMap := make(map[string]container.Container)
+	for _, c := range containers {
+		containerMap[c.Name] = c
+	}
+
+	if len(containerMap) == 0 {
+		log.Logf("No containers found for kind cluster %q", k.name)
+		return nil
+	}
+
+	// Force delete all found containers
+	var deleteErrors []error
+	for _, c := range containerMap {
+		log.Logf("Force deleting container: %s (Image: %s, Status: %s)", c.Name, c.Image, c.Status)
+		if err := containerRuntime.DeleteContainer(ctx, c.Name); err != nil {
+			deleteErrors = append(deleteErrors, errors.Wrapf(err, "failed to delete container %s", c.Name))
+		}
+	}
+
+	if len(deleteErrors) > 0 {
+		return errors.Wrap(kerrors.NewAggregate(deleteErrors), "failed to delete some containers")
+	}
+
+	log.Logf("Successfully cleaned up %d containers for kind cluster %q", len(containerMap), k.name)
+	return nil
 }
