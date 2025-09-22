@@ -844,40 +844,40 @@ docker-build-e2e: ## Run docker-build-* targets for all the images with settings
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for core controller manager
 ## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
-	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
+	cat ./Dockerfile | DOCKER_BUILDKIT=0 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-kubeadm-bootstrap
 docker-build-kubeadm-bootstrap: ## Build the docker image for kubeadm bootstrap controller manager
 ## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
-	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
+	cat ./Dockerfile | DOCKER_BUILDKIT=0 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-kubeadm-control-plane
 docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm control plane controller manager
 ## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
-	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
+	cat ./Dockerfile | DOCKER_BUILDKIT=0 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-docker-infrastructure
 docker-build-docker-infrastructure: ## Build the docker image for docker infrastructure controller manager
 ## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
-	cat $(CAPD_DIR)/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
+	cat $(CAPD_DIR)/Dockerfile | DOCKER_BUILDKIT=0 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPD_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-clusterctl
 docker-build-clusterctl: ## Build the docker image for clusterctl
 ## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
-	cat ./cmd/clusterctl/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./cmd/clusterctl --build-arg ldflags="$(LDFLAGS)" . -t $(CLUSTERCTL_IMG)-$(ARCH):$(TAG) --file -
+	cat ./cmd/clusterctl/Dockerfile | DOCKER_BUILDKIT=0 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./cmd/clusterctl --build-arg ldflags="$(LDFLAGS)" . -t $(CLUSTERCTL_IMG)-$(ARCH):$(TAG) --file -
 
 .PHONY: docker-build-test-extension
 docker-build-test-extension: ## Build the docker image for core controller manager
 ## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
-	cat ./test/extension/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG) --file -
+	cat ./test/extension/Dockerfile | DOCKER_BUILDKIT=0 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(TEST_EXTENSION_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./test/extension/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/extension/config/default/manager_pull_policy.yaml"
 
@@ -987,7 +987,7 @@ test-framework-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration 
 test-e2e: $(GINKGO) generate-e2e-templates ## Run the end-to-end tests
 	$(GINKGO) -v --trace --tags=e2e \
 		--nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) \
-		--label-filter="$(GINKGO_LABEL_FILTER)" --focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
+		--label-filter="testing-ira" --focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
 		--poll-progress-after=$(GINKGO_POLL_PROGRESS_AFTER) --poll-progress-interval=$(GINKGO_POLL_PROGRESS_INTERVAL) \
 		--fail-on-pending --fail-on-empty \
 		--no-color=$(GINKGO_NOCOLOR) --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" \

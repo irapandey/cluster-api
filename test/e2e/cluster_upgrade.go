@@ -102,6 +102,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 	)
 
 	BeforeEach(func() {
+		fmt.Print("----------This is start of BeforeEach-------------")
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
@@ -134,6 +135,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		// Setup a Namespace where to host objects for this spec and create a watcher for the Namespace events.
 		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
+		fmt.Print("-------------This is end of BeforeEach-------------")
 	})
 
 	It("Should create and upgrade a workload cluster and eventually run kubetest", func() {
@@ -296,6 +298,8 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec Namespace, then cleanups the cluster object and the spec Namespace itself.
+		fmt.Print("-------------This is start of AfterEach-------------")
 		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		fmt.Print("-------------This is end of AfterEach-------------")
 	})
 }

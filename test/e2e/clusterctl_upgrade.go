@@ -213,6 +213,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 	)
 
 	BeforeEach(func() {
+		fmt.Print("-------------This is start of BeforeEach-------------")
+
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
@@ -257,6 +259,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			managementClusterNamespace, managementClusterCancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		}
 		managementClusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
+		fmt.Print("-------------This is end of BeforeEach-------------")	
 	})
 
 	It("Should create a management cluster and then upgrade all the providers", func() {
@@ -777,6 +780,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 	})
 
 	AfterEach(func() {
+		fmt.Print("-------------This is start of AfterEach-------------")
 		if testNamespace != nil {
 			// Dump all the logs from the workload cluster before deleting them.
 			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, testNamespace, &clusterv1.Cluster{
@@ -827,6 +831,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		}
 	})
+		fmt.Print("-------------This is end of AfterEach-------------")
 }
 
 func setupClusterctl(ctx context.Context, clusterctlBinaryURL, clusterctlConfigPath string) (string, string) {

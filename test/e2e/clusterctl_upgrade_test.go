@@ -234,7 +234,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.9=>cur
 })
 
 // Note: This test should be changed during "prepare main branch", it should test n-2 => current.
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>current) [ClusterClass]", Label("ClusterClass"), func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.10=>current) [ClusterClass]", Label("testing-ira"), func() {
 	// Get n-2 latest stable release
 	version := "1.10"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
