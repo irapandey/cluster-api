@@ -563,9 +563,15 @@ generate-doctoc:
 generate-crd-docs: $(CRD_REF_DOCS) ## Generate CRD API reference documentation using crd-ref-docs
 	$(CRD_REF_DOCS) \
 		--source-path=$(ROOT_DIR)/api \
-		--config=$(ROOT_DIR)/hack/crd-ref-docs-config.yaml \
+		--config=$(ROOT_DIR)/hack/crd-ref-docs-config-v1beta2.yaml \
 		--renderer=markdown \
 		--output-path=$(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference.md
+	$(CRD_REF_DOCS) \
+		--source-path=$(ROOT_DIR)/api \
+		--config=$(ROOT_DIR)/hack/crd-ref-docs-config-v1beta1.yaml \
+		--renderer=markdown \
+		--output-path=$(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md
+	printf '%s\n\n' '> This page documents **v1beta1** API packages. For current types, see [CRD API Reference (v1beta2)](crd-api-reference.md).' | cat - $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md > $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md.tmp && mv $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md.tmp $(ROOT_DIR)/$(DOCS_DIR)/book/src/reference/api/crd-api-reference-v1beta1.md
 
 .PHONY: generate-e2e-templates
 generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.10 v1.11 v1.12 main) ## Generate cluster templates for all versions
