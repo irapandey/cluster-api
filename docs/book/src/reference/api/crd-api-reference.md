@@ -495,7 +495,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `partitions` _[Partition](#partition) array_ | partitions specifies the list of the partitions to setup. |  | MaxItems: 100 <br />Optional: \{\} <br /> |
+| `partitions` _[Partition](#partition) array_ | partitions specifies the list of the partitions to setup. |  | ExactlyOneOf: [layout diskLayout] <br />MaxItems: 100 <br />Optional: \{\} <br /> |
 | `filesystems` _[Filesystem](#filesystem) array_ | filesystems specifies the list of file systems to setup. |  | MaxItems: 100 <br />Optional: \{\} <br /> |
 
 
@@ -1225,7 +1225,8 @@ _Appears in:_
 
 Partition defines how to create and layout a partition.
 
-
+_Validation:_
+- ExactlyOneOf: [layout diskLayout]
 
 _Appears in:_
 - [DiskSetup](#disksetup)
@@ -1233,9 +1234,27 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `device` _string_ | device is the name of the device. |  | MaxLength: 256 <br />MinLength: 1 <br />Required: \{\} <br /> |
-| `layout` _boolean_ | layout specifies the device layout.<br />If it is true, a single partition will be created for the entire device.<br />When layout is false, it means don't partition or ignore existing partitioning. |  | Required: \{\} <br /> |
+| `layout` _boolean_ | layout specifies the device layout.<br />If it is true, a single partition will be created for the entire device.<br />When layout is false, it means don't partition or ignore existing partitioning.<br />Mutually exclusive with diskLayout. |  | Optional: \{\} <br /> |
 | `overwrite` _boolean_ | overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.<br />Use with caution. Default is 'false'. |  | Optional: \{\} <br /> |
 | `tableType` _string_ | tableType specifies the tupe of partition table. The following are supported:<br />'mbr': default and setups a MS-DOS partition table<br />'gpt': setups a GPT partition table |  | Enum: [mbr gpt] <br />Optional: \{\} <br /> |
+| `diskLayout` _[PartitionSpec](#partitionspec) array_ | diskLayout specifies an ordered list of partitions, where each item defines the<br />percentage of disk space and optional partition type for that partition.<br />The sum of all partition percentages must not be greater than 100.<br />Mutually exclusive with layout. |  | MaxItems: 100 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+
+
+#### PartitionSpec
+
+
+
+PartitionSpec defines the size and optional type for a partition.
+
+
+
+_Appears in:_
+- [Partition](#partition)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `percentage` _integer_ | percentage of disk that partition will take (1-100) |  | Maximum: 100 <br />Minimum: 1 <br />Required: \{\} <br /> |
+| `partitionType` _string_ | partitionType is the partition type (optional).<br />Supported values are Linux, LinuxSwap, LinuxRAID, LVM, Fat32, NTFS,<br />and LinuxExtended. These are translated to cloud-init partition type codes.<br />A full GPT partition GUID is also supported as a passthrough value. |  | MaxLength: 36 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### PasswdSource
@@ -2135,6 +2154,7 @@ _Appears in:_
 | `healthCheck` _[ControlPlaneClassHealthCheck](#controlplaneclasshealthcheck)_ | healthCheck defines a MachineHealthCheck for this ControlPlaneClass.<br />This field is supported if and only if the ControlPlane provider template<br />referenced above is Machine based and supports setting replicas. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `naming` _[ControlPlaneClassNamingSpec](#controlplaneclassnamingspec)_ | naming allows changing the naming pattern used when creating the control plane provider object. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[ControlPlaneClassMachineDeletionSpec](#controlplaneclassmachinedeletionspec)_ | deletion contains configuration options for Machine deletion. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `taints` _[MachineTaint](#machinetaint) array_ | taints are the node taints that Cluster API will manage.<br />This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,<br />e.g. the node controller might add the node.kubernetes.io/not-ready taint.<br />Only those taints defined in this list will be added or removed by core Cluster API controllers.<br />There can be at most 64 taints.<br />A pod would have to tolerate all existing taints to run on the corresponding node.<br />NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners. |  | MaxItems: 64 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition.<br />This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready<br />computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.<br />NOTE: If a Cluster defines a custom list of readinessGates for the control plane,<br />such list overrides readinessGates defined in this field.<br />NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;<br />e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
 
@@ -2279,8 +2299,10 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `metadata` _[ObjectMeta](#objectmeta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `replicas` _integer_ | replicas is the number of control plane nodes.<br />If the value is not set, the ControlPlane object is created without the number of Replicas<br />and it's assumed that the control plane controller does not implement support for this field.<br />When specified against a control plane provider that lacks support for this field, this value will be ignored. |  | Optional: \{\} <br /> |
+| `rollout` _[ControlPlaneTopologyRolloutSpec](#controlplanetopologyrolloutspec)_ | rollout allows you to configure the behavior of rolling updates to the control plane. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `healthCheck` _[ControlPlaneTopologyHealthCheck](#controlplanetopologyhealthcheck)_ | healthCheck allows to enable, disable and override control plane health check<br />configuration from the ClusterClass for this control plane. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[ControlPlaneTopologyMachineDeletionSpec](#controlplanetopologymachinedeletionspec)_ | deletion contains configuration options for Machine deletion. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `taints` _[MachineTaint](#machinetaint) array_ | taints are the node taints that Cluster API will manage.<br />This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,<br />e.g. the node controller might add the node.kubernetes.io/not-ready taint.<br />Only those taints defined in this list will be added or removed by core Cluster API controllers.<br />There can be at most 64 taints.<br />A pod would have to tolerate all existing taints to run on the corresponding node.<br />NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners. |  | MaxItems: 64 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition.<br />This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready<br />computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.<br />If this field is not defined, readinessGates from the corresponding ControlPlaneClass will be used, if any.<br />NOTE: Specific control plane provider implementations might automatically extend the list of readinessGates;<br />e.g. the kubeadm control provider adds ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `variables` _[ControlPlaneVariables](#controlplanevariables)_ | variables can be used to customize the ControlPlane through patches. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 
@@ -2376,6 +2398,20 @@ _Appears in:_
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds. |  | Minimum: 0 <br />Optional: \{\} <br /> |
+
+
+#### ControlPlaneTopologyRolloutSpec
+
+
+
+ControlPlaneTopologyRolloutSpec defines the rollout behavior.
+
+_Validation:_
+- MinProperties: 1
+
+_Appears in:_
+- [ControlPlaneTopology](#controlplanetopology)
+
 
 
 #### ControlPlaneVariables
@@ -2638,7 +2674,7 @@ _Underlying type:_ _[MachineAddress](#machineaddress)_
 MachineAddresses is a slice of MachineAddress items to be used by infrastructure providers.
 
 _Validation:_
-- MaxItems: 128
+- MaxItems: 256
 
 _Appears in:_
 - [MachineStatus](#machinestatus)
@@ -2723,6 +2759,7 @@ _Appears in:_
 | `failureDomain` _string_ | failureDomain is the failure domain the machines will be created in.<br />Must match the name of a FailureDomain from the Cluster status.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `naming` _[MachineDeploymentClassNamingSpec](#machinedeploymentclassnamingspec)_ | naming allows changing the naming pattern used when creating the MachineDeployment. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[MachineDeploymentClassMachineDeletionSpec](#machinedeploymentclassmachinedeletionspec)_ | deletion contains configuration options for Machine deletion. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `taints` _[MachineTaint](#machinetaint) array_ | taints are the node taints that Cluster API will manage.<br />This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,<br />e.g. the node controller might add the node.kubernetes.io/not-ready taint.<br />Only those taints defined in this list will be added or removed by core Cluster API controllers.<br />There can be at most 64 taints.<br />A pod would have to tolerate all existing taints to run on the corresponding node.<br />NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners. |  | MaxItems: 64 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `minReadySeconds` _integer_ | minReadySeconds is the minimum number of seconds for which a newly created machine should<br />be ready.<br />Defaults to 0 (machine will be considered available as soon as it<br />is ready)<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition.<br />This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready<br />computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.<br />NOTE: If a Cluster defines a custom list of readinessGates for a MachineDeployment using this MachineDeploymentClass,<br />such list overrides readinessGates defined in this field. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `rollout` _[MachineDeploymentClassRolloutSpec](#machinedeploymentclassrolloutspec)_ | rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.<br />It allows you to define the strategy used during rolling replacements. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
@@ -3140,6 +3177,7 @@ _Appears in:_
 | `replicas` _integer_ | replicas is the number of worker nodes belonging to this set.<br />If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to 1)<br />and it's assumed that an external entity (like cluster autoscaler) is responsible for the management<br />of this value. |  | Optional: \{\} <br /> |
 | `healthCheck` _[MachineDeploymentTopologyHealthCheck](#machinedeploymenttopologyhealthcheck)_ | healthCheck allows to enable, disable and override MachineDeployment health check<br />configuration from the ClusterClass for this MachineDeployment. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[MachineDeploymentTopologyMachineDeletionSpec](#machinedeploymenttopologymachinedeletionspec)_ | deletion contains configuration options for Machine deletion. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `taints` _[MachineTaint](#machinetaint) array_ | taints are the node taints that Cluster API will manage.<br />This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,<br />e.g. the node controller might add the node.kubernetes.io/not-ready taint.<br />Only those taints defined in this list will be added or removed by core Cluster API controllers.<br />There can be at most 64 taints.<br />A pod would have to tolerate all existing taints to run on the corresponding node.<br />NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners. |  | MaxItems: 64 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `minReadySeconds` _integer_ | minReadySeconds is the minimum number of seconds for which a newly created machine should<br />be ready.<br />Defaults to 0 (machine will be considered available as soon as it<br />is ready) |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition.<br />This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready<br />computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine.<br />If this field is not defined, readinessGates from the corresponding MachineDeploymentClass will be used, if any. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `rollout` _[MachineDeploymentTopologyRolloutSpec](#machinedeploymenttopologyrolloutspec)_ | rollout allows you to configure the behaviour of rolling updates to the MachineDeployment Machines.<br />It allows you to define the strategy used during rolling replacements. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
@@ -3785,6 +3823,7 @@ _Appears in:_
 | `failureDomains` _string array_ | failureDomains is the list of failure domains the MachinePool should be attached to.<br />Must match a key in the FailureDomains map stored on the cluster object.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass. |  | MaxItems: 100 <br />items:MaxLength: 256 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 | `naming` _[MachinePoolClassNamingSpec](#machinepoolclassnamingspec)_ | naming allows changing the naming pattern used when creating the MachinePool. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[MachinePoolClassMachineDeletionSpec](#machinepoolclassmachinedeletionspec)_ | deletion contains configuration options for Machine deletion. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `taints` _[MachineTaint](#machinetaint) array_ | taints are the node taints that Cluster API will manage.<br />This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,<br />e.g. the node controller might add the node.kubernetes.io/not-ready taint.<br />Only those taints defined in this list will be added or removed by core Cluster API controllers.<br />There can be at most 64 taints.<br />A pod would have to tolerate all existing taints to run on the corresponding node.<br />NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners. |  | MaxItems: 64 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `minReadySeconds` _integer_ | minReadySeconds is the minimum number of seconds for which a newly created machine pool should<br />be ready.<br />Defaults to 0 (machine will be considered available as soon as it<br />is ready)<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachinePoolClass. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 
 
@@ -3977,6 +4016,7 @@ _Appears in:_
 | `name` _string_ | name is the unique identifier for this MachinePoolTopology.<br />The value is used with other unique identifiers to create a MachinePool's Name<br />(e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,<br />the values are hashed together. |  | MaxLength: 63 <br />MinLength: 1 <br />Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$` <br />Required: \{\} <br /> |
 | `failureDomains` _string array_ | failureDomains is the list of failure domains the machine pool will be created in.<br />Must match a key in the FailureDomains map stored on the cluster object. |  | MaxItems: 100 <br />MinItems: 1 <br />items:MaxLength: 256 <br />items:MinLength: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[MachinePoolTopologyMachineDeletionSpec](#machinepooltopologymachinedeletionspec)_ | deletion contains configuration options for Machine deletion. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
+| `taints` _[MachineTaint](#machinetaint) array_ | taints are the node taints that Cluster API will manage.<br />This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,<br />e.g. the node controller might add the node.kubernetes.io/not-ready taint.<br />Only those taints defined in this list will be added or removed by core Cluster API controllers.<br />There can be at most 64 taints.<br />A pod would have to tolerate all existing taints to run on the corresponding node.<br />NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners. |  | MaxItems: 64 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `minReadySeconds` _integer_ | minReadySeconds is the minimum number of seconds for which a newly created machine pool should<br />be ready.<br />Defaults to 0 (machine will be considered available as soon as it<br />is ready) |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `replicas` _integer_ | replicas is the number of nodes belonging to this pool.<br />If the value is nil, the MachinePool is created without the number of Replicas (defaulting to 1)<br />and it's assumed that an external entity (like cluster autoscaler) is responsible for the management<br />of this value. |  | Optional: \{\} <br /> |
 | `variables` _[MachinePoolVariables](#machinepoolvariables)_ | variables can be used to customize the MachinePool through patches. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
@@ -4266,11 +4306,11 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a Machine's current state.<br />Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady,<br />NodeHealthy, Updating, Deleting, Paused.<br />If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added.<br />Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions:<br />APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | conditions represents the observations of a Machine's current state.<br />Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady,<br />NodeHealthy, Updating, Deleting, Paused.<br />If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added.<br />Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions:<br />APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy, NodeKubeadmLabelsAndTaintsSet. |  | MaxItems: 32 <br />Optional: \{\} <br /> |
 | `initialization` _[MachineInitializationStatus](#machineinitializationstatus)_ | initialization provides observations of the Machine initialization process.<br />NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `nodeRef` _[MachineNodeReference](#machinenodereference)_ | nodeRef will point to the corresponding Node if it exists. |  | Optional: \{\} <br /> |
 | `nodeInfo` _[NodeSystemInfo](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nodesysteminfo-v1-core)_ | nodeInfo is a set of ids/uuids to uniquely identify the node.<br />More info: https://kubernetes.io/docs/concepts/nodes/node/#info |  | Optional: \{\} <br /> |
-| `addresses` _[MachineAddresses](#machineaddresses)_ | addresses is a list of addresses assigned to the machine.<br />This field is copied from the infrastructure provider reference. |  | MaxItems: 128 <br />Optional: \{\} <br /> |
+| `addresses` _[MachineAddresses](#machineaddresses)_ | addresses is a list of addresses assigned to the machine.<br />This field is copied from the infrastructure provider reference. |  | MaxItems: 256 <br />Optional: \{\} <br /> |
 | `failureDomain` _string_ | failureDomain is the failure domain where the Machine has been scheduled. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `phase` _string_ | phase represents the current phase of machine actuation. |  | Enum: [Pending Provisioning Provisioned Running Updating Deleting Deleted Failed Unknown] <br />Optional: \{\} <br /> |
 | `observedGeneration` _integer_ | observedGeneration is the latest generation observed by the controller. |  | Minimum: 1 <br />Optional: \{\} <br /> |
@@ -4287,8 +4327,14 @@ MachineTaint defines a taint equivalent to corev1.Taint, but additionally having
 
 
 _Appears in:_
+- [ControlPlaneClass](#controlplaneclass)
+- [ControlPlaneTopology](#controlplanetopology)
 - [KubeadmControlPlaneMachineTemplateSpec](#kubeadmcontrolplanemachinetemplatespec)
 - [KubeadmControlPlaneTemplateMachineTemplateSpec](#kubeadmcontrolplanetemplatemachinetemplatespec)
+- [MachineDeploymentClass](#machinedeploymentclass)
+- [MachineDeploymentTopology](#machinedeploymenttopology)
+- [MachinePoolClass](#machinepoolclass)
+- [MachinePoolTopology](#machinepooltopology)
 - [MachineSpec](#machinespec)
 
 | Field | Description | Default | Validation |
@@ -4809,7 +4855,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `infrastructureRef` _[ContractVersionedObjectReference](#contractversionedobjectreference)_ | infrastructureRef is a required reference to a custom resource<br />offered by an infrastructure provider. |  | Required: \{\} <br /> |
-| `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition;<br />KubeadmControlPlane will always add readinessGates for the condition it is setting on the Machine:<br />APIServerPodHealthy, SchedulerPodHealthy, ControllerManagerPodHealthy, and if etcd is managed by CKP also<br />EtcdPodHealthy, EtcdMemberHealthy.<br />This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready<br />computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
+| `readinessGates` _[MachineReadinessGate](#machinereadinessgate) array_ | readinessGates specifies additional conditions to include when evaluating Machine Ready condition;<br />KubeadmControlPlane will always add readinessGates for the condition it is setting on the Machine:<br />NodeKubeadmLabelsAndTaintsSet, APIServerPodHealthy, SchedulerPodHealthy, ControllerManagerPodHealthy, and if etcd is managed by CKP also<br />EtcdPodHealthy, EtcdMemberHealthy.<br />This field can be used e.g. to instruct the machine controller to include in the computation for Machine's ready<br />computation a condition, managed by an external controllers, reporting the status of special software/hardware installed on the Machine. |  | MaxItems: 32 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 | `deletion` _[KubeadmControlPlaneMachineTemplateDeletionSpec](#kubeadmcontrolplanemachinetemplatedeletionspec)_ | deletion contains configuration options for Machine deletion. |  | MinProperties: 1 <br />Optional: \{\} <br /> |
 | `taints` _[MachineTaint](#machinetaint) array_ | taints are the node taints that Cluster API will manage.<br />This list is not necessarily complete: other Kubernetes components may add or remove other taints from nodes,<br />e.g. the node controller might add the node.kubernetes.io/not-ready taint.<br />Only those taints defined in this list will be added or removed by core Cluster API controllers.<br />There can be at most 64 taints.<br />A pod would have to tolerate all existing taints to run on the corresponding node.<br />NOTE: This list is implemented as a "map" type, meaning that individual elements can be managed by different owners. |  | MaxItems: 64 <br />MinItems: 1 <br />Optional: \{\} <br /> |
 
