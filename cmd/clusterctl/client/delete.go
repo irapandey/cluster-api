@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
@@ -74,8 +75,9 @@ func (c *clusterctlClient) Delete(ctx context.Context, options DeleteOptions) er
 		return err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx); err != nil {
+	// Ensure this command only runs against management clusters with the current Cluster API contract;
+	// temporarily we also allow v1beta1 to allow transition to the current Cluster API contract.
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx, cluster.AllowCAPIContract{Contract: clusterv1beta1.GroupVersion.Version}); err != nil {
 		return err
 	}
 

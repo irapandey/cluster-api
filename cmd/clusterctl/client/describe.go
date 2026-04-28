@@ -19,6 +19,8 @@ package client
 import (
 	"context"
 
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
 )
 
@@ -67,19 +69,20 @@ type DescribeClusterOptions struct {
 // DescribeCluster returns the object tree representing the status of a Cluster API cluster.
 func (c *clusterctlClient) DescribeCluster(ctx context.Context, options DescribeClusterOptions) (*tree.ObjectTree, error) {
 	// gets access to the management cluster
-	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return nil, err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := cluster.ProviderInventory().CheckCAPIContract(ctx); err != nil {
+	// Ensure this command only runs against management clusters with the current Cluster API contract;
+	// temporarily we also allow v1beta1 to allow transition to the current Cluster API contract.
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx, cluster.AllowCAPIContract{Contract: clusterv1beta1.GroupVersion.Version}); err != nil {
 		return nil, err
 	}
 
 	// If the option specifying the Namespace is empty, try to detect it.
 	if options.Namespace == "" {
-		currentNamespace, err := cluster.Proxy().CurrentNamespace()
+		currentNamespace, err := clusterClient.Proxy().CurrentNamespace()
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +90,7 @@ func (c *clusterctlClient) DescribeCluster(ctx context.Context, options Describe
 	}
 
 	// Fetch the Cluster client.
-	client, err := cluster.Proxy().NewClient(ctx)
+	client, err := clusterClient.Proxy().NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}

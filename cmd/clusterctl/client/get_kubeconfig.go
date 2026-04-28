@@ -20,6 +20,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 // GetKubeconfigOptions carries all the options supported by GetKubeconfig.
@@ -42,8 +45,9 @@ func (c *clusterctlClient) GetKubeconfig(ctx context.Context, options GetKubecon
 		return "", err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx); err != nil {
+	// Ensure this command only runs against management clusters with the current Cluster API contract;
+	// temporarily we also allow v1beta1 to allow transition to the current Cluster API contract.
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx, cluster.AllowCAPIContract{Contract: clusterv1beta1.GroupVersion.Version}); err != nil {
 		return "", err
 	}
 
